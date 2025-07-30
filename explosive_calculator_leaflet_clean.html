@@ -1,0 +1,116 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>폭약 대피거리 계산기</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    input, select, button { margin-top: 5px; }
+    .result { margin-top: 20px; font-weight: bold; white-space: pre-line; }
+    #map { height: 400px; width: 100%; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>💣 폭약 대피거리 계산기</h1>
+
+  <label>폭약 종류:
+    <select id="explosiveType" onchange="toggleInputs()">
+      <option value="TNT">TNT (kg)</option>
+      <option value="C4">C4 (lb)</option>
+      <option value="DetCord">도폭선 (cm)</option>
+    </select>
+  </label>
+
+  <div id="tntInput">
+    <label>TNT 무게 (kg): <input type="number" id="tntWeight" step="0.01" /></label>
+  </div>
+
+  <div id="c4Input" style="display:none;">
+    <label>C4 무게 (lb): <input type="number" id="c4Weight" step="0.01" /></label>
+  </div>
+
+  <div id="detcordInput" style="display:none;">
+    <label>도폭선 길이 (cm): <input type="number" id="detCordLength" step="0.1" /></label>
+  </div>
+
+  <label>뇌관 개수:
+    <input type="number" id="blastingCaps" step="1" value="0" />
+  </label>
+
+  <label>K 상수값:
+    <select id="kValue">
+      <option value="18">K18</option>
+      <option value="24">K24</option>
+      <option value="50">K50</option>
+      <option value="328">K328</option>
+    </select>
+  </label>
+
+  <button onclick="calculate()">계산하기</button>
+
+  <div class="result" id="result"></div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map = L.map('map').setView([37.5665, 126.9780], 15); // 서울 기본 좌표
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+    }).addTo(map);
+
+    let circle;
+
+    function toggleInputs() {
+      const type = document.getElementById("explosiveType").value;
+      document.getElementById("tntInput").style.display = type === "TNT" ? "block" : "none";
+      document.getElementById("c4Input").style.display = type === "C4" ? "block" : "none";
+      document.getElementById("detcordInput").style.display = type === "DetCord" ? "block" : "none";
+    }
+
+    function calculate() {
+      const type = document.getElementById("explosiveType").value;
+      const k = parseFloat(document.getElementById("kValue").value);
+      const caps = parseInt(document.getElementById("blastingCaps").value) || 0;
+
+      let totalWeightLb = 0;
+
+      if (type === "TNT") {
+        const kg = parseFloat(document.getElementById("tntWeight").value) || 0;
+        totalWeightLb = kg / 1.34 / 0.454;
+      }
+
+      if (type === "C4") {
+        const c4Lb = parseFloat(document.getElementById("c4Weight").value) || 0;
+        totalWeightLb = c4Lb * 1.34;
+      }
+
+      if (type === "DetCord") {
+        const lengthCm = parseFloat(document.getElementById("detCordLength").value) || 0;
+        const detcordLb = (lengthCm * 1.64 * 1.66) / 7000;
+        totalWeightLb = detcordLb;
+      }
+
+      const capLb = caps * ((13.5 * 1.60) / 7000);
+      totalWeightLb += capLb;
+
+      const distance = k * Math.cbrt(totalWeightLb);
+
+      document.getElementById("result").innerText =
+        `총 TNT 환산중량: ${totalWeightLb.toFixed(3)} lb\n` +
+        `안전거리(K${k}): ${distance.toFixed(2)} m`;
+
+      if (circle) map.removeLayer(circle);
+      circle = L.circle([37.5665, 126.9780], {
+        color: 'red',
+        fillColor: '#f03',
+        fillOpacity: 0.3,
+        radius: distance
+      }).addTo(map);
+    }
+  </script>
+</body>
+</html>
