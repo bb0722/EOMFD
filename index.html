@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>폭약 대피거리 계산기</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    label { display: block; margin-top: 10px; }
+    input, select, button { margin-top: 5px; }
+    .result { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>💣 폭약 대피거리 계산기 (미군 기준)</h1>
+
+  <label>폭약 종류:
+    <select id="explosiveType">
+      <option value="TNT">TNT</option>
+      <option value="C4">C4</option>
+      <option value="PETN">PETN</option>
+      <option value="RDX">RDX</option>
+      <option value="HMX">HMX</option>
+      <option value="DetCord">도폭선 (cm)</option>
+    </select>
+  </label>
+
+  <label>폭약량 (lb 또는 cm):
+    <input type="number" id="weight" step="0.01" />
+  </label>
+
+  <label>K 상수값:
+    <select id="kValue">
+      <option value="18">K18 (최소 안전거리)</option>
+      <option value="24">K24 (작업 안전거리)</option>
+      <option value="50">K50 (위험반경)</option>
+      <option value="328">K328 (최대 피해반경)</option>
+    </select>
+  </label>
+
+  <button onclick="calculate()">계산하기</button>
+
+  <div class="result" id="result"></div>
+
+  <script>
+    function calculate() {
+      const explosiveType = document.getElementById("explosiveType").value;
+      let weight = parseFloat(document.getElementById("weight").value);
+      const k = parseFloat(document.getElementById("kValue").value);
+
+      if (explosiveType === "DetCord") {
+        // 도폭선일 경우 cm → lb 변환
+        weight = weight * 1.64 * 1.66 / 453.6; 
+      }
+
+      const factors = { TNT: 1, C4: 1.34, PETN: 1.66, RDX: 1.6, HMX: 1.7 };
+      const factor = factors[explosiveType] || 1;
+
+      const netWeight = weight * factor;
+      const distance = k * Math.cbrt(netWeight);
+
+      document.getElementById("result").innerText =
+        `📏 안전거리: ${distance.toFixed(2)} m (TNT 환산중량: ${netWeight.toFixed(2)} lb)`;
+    }
+  </script>
+</body>
+</html>
