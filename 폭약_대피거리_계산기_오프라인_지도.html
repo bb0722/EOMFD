@@ -1,0 +1,114 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>폭약 대피거리 계산기 (오프라인 지도 포함)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        label { display: block; margin-top: 10px; }
+        select, input { margin-top: 5px; }
+        button { margin-top: 15px; padding: 10px; }
+        #result { margin-top: 20px; font-weight: bold; white-space: pre-line; }
+        #map { height: 400px; margin-top: 20px; border: 1px solid #444; }
+    </style>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script>
+        let map, marker, circle;
+
+        window.onload = function() {
+            map = L.map('map').setView([37.5665, 126.9780], 13); // 기본 위치: 서울
+
+            // 인터넷 연결이 없어도 빈 배경만 표시
+            L.tileLayer('', {
+                attribution: '오프라인 지도 모드'
+            }).addTo(map);
+        }
+
+        function calc() {
+            let type = document.getElementById("type").value;
+            let weight = parseFloat(document.getElementById("weight").value);
+            let unit = document.getElementById("unit").value;
+            let detonators = parseInt(document.getElementById("detonators").value);
+            let k = parseFloat(document.getElementById("k").value);
+
+            if (isNaN(weight) || isNaN(detonators)) {
+                alert("폭약량과 뇌관 개수를 정확히 입력하세요.");
+                return;
+            }
+
+            // 단위 변환
+            if (unit === "lb") {
+                weight = weight * 0.453592; // lb → kg
+            } else if (unit === "cm") {
+                weight = (weight / 100) * 1.64 * 1.66; // 도폭선 cm를 kg 환산 (예시)
+            }
+
+            let total_weight = weight + detonators * 0.025;
+
+            let factor = 1.0;
+            if (type === "C4") factor = 1.34;
+            if (type === "PETN") factor = 1.66;
+            if (type === "RDX") factor = 1.6;
+            if (type === "HMX") factor = 1.7;
+
+            let W = total_weight * factor;
+            let distance = k * Math.cbrt(W);
+
+            document.getElementById("result").innerText =
+                "총 TNT 환산 중량: " + W.toFixed(2) + " kg\n" +
+                "대피 거리(K" + k + "): " + distance.toFixed(2) + " m";
+
+            // 지도 원 표시
+            if (marker) map.removeLayer(marker);
+            if (circle) map.removeLayer(circle);
+
+            marker = L.marker([37.5665, 126.9780]).addTo(map);
+            circle = L.circle([37.5665, 126.9780], {
+                radius: distance,
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.2
+            }).addTo(map);
+        }
+    </script>
+</head>
+<body>
+    <h2>폭약 대피거리 계산기 (오프라인 지도 버전)</h2>
+    <label>폭약 종류:
+        <select id="type">
+            <option value="TNT">TNT</option>
+            <option value="C4">C4</option>
+            <option value="PETN">PETN</option>
+            <option value="RDX">RDX</option>
+            <option value="HMX">HMX</option>
+        </select>
+    </label>
+
+    <label>폭약량: <input type="number" id="weight" step="0.01"></label>
+
+    <label>단위:
+        <select id="unit">
+            <option value="kg">kg</option>
+            <option value="lb">lb</option>
+            <option value="cm">cm (도폭선)</option>
+        </select>
+    </label>
+
+    <label>뇌관 개수: <input type="number" id="detonators" value="1"></label>
+
+    <label>K 상수값:
+        <select id="k">
+            <option value="18">18</option>
+            <option value="24">24</option>
+            <option value="50">50</option>
+        </select>
+    </label>
+
+    <button onclick="calc()">계산하기</button>
+
+    <div id="result"></div>
+    <div id="map"></div>
+</body>
+</html>
